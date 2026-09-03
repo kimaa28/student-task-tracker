@@ -7,6 +7,7 @@ from dashboard import Dashboard
 from courses import Courses
 from statistik import Statistics
 from settings import Settings
+from support import Support
 from ImageRounder import rounded_image
 import datetime
 
@@ -38,6 +39,10 @@ class App(ctk.CTkFrame):
         self.right_frame.grid(row=0, column=1, sticky="nsew")
         
         self.columnconfigure(1, weight=20)
+        self.rowconfigure(0, weight=1)
+        
+        self.su = Support(self.right_frame, corner_radius=0, border_color="black", fg_color=self.right_frame.cget("fg_color"))
+        self.su.place(relwidth=1, relheight=1)
         self.rowconfigure(0, weight=1)
         
         self.c = Courses(self.right_frame, corner_radius=0, border_color="black", fg_color=self.right_frame.cget("fg_color"))
@@ -89,7 +94,7 @@ class App(ctk.CTkFrame):
         
     def _create_button(self, parent, liste):
         list(map(lambda a : ctk.CTkButton(parent, text=a[1], text_color="white",font= ("Inter", 17), hover_color="#1687d8", 
-                                         command=lambda: showinfo(title='Info',message='Dieses fenster ist noch nicht bereit.') if a[0] == 4 
+                                         command=lambda: self.choice_frame(self.su) if a[0] == 4 
                                          else self.choice_frame(self.d) if a[0] == 0 
                                          else self.choice_frame(self.c) if a[0] == 1 
                                          else self.choice_frame(self.s) if a[0] == 2 
