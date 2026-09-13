@@ -122,7 +122,7 @@ if __name__ == "__main__":
     secretvar = ctk.StringVar()
     second_pass = ctk.StringVar()
 
-    frame = create_reset_frame(app, uservar,passvar,second_pass, emailvar, secretvar, lambda: print("hello"), lambda: print("hi"), lambda: print("hello1"), lo)
+    frame = create_reset_frame(app, uservar,passvar,second_pass, emailvar, secretvar, lambda: print("hello"), lambda: print("hi"), lo, lo)
     frame["reset_frame"].pack(expand=True, padx=20, pady=20)
 
 

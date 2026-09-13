@@ -29,39 +29,39 @@ def create_register_frame(parent, uservar, passvar, second_pass, emailvar, sex, 
     userpasswort_frame.pack(expand=True)
     #Username field
     
-    username_label = ctk.CTkLabel(userpasswort_frame, text="Username:", text_color="white", font=("Arial", 20))
-    username_label.grid(row=0, column=0, padx=10, pady=10)
+    username_label = ctk.CTkLabel(userpasswort_frame, text="Username:", text_color="white", font=("Arial", 20), anchor="w")
+    username_label.grid(row=0, column=0, padx=10, pady=10, sticky="w")
     username_entry = ctk.CTkEntry(userpasswort_frame, width=300, height=30, corner_radius=10, textvariable=uservar)
     username_entry.grid(row=0, column=1, padx=10, pady=20)
 
     #Password field
-    password_label = ctk.CTkLabel(userpasswort_frame, text="Password:", text_color="white", font=("Arial", 20))
-    password_label.grid(row=1, column=0, padx=10, pady=10)
+    password_label = ctk.CTkLabel(userpasswort_frame, text="Password:", text_color="white", font=("Arial", 20), anchor="w")
+    password_label.grid(row=1, column=0, padx=10, pady=10, sticky="w")
     password_entry = ctk.CTkEntry(userpasswort_frame, width=300, height=30, corner_radius=10, show="*", textvariable= passvar)
     password_entry.grid(row=1, column=1, padx=10, pady=20)
 
     #password wiederholen field
-    repeat_password_label = ctk.CTkLabel(userpasswort_frame, text="Confirm Password:", text_color="white", font=("Arial", 20))
-    repeat_password_label.grid(row=2, column=0, padx=10, pady=10)
+    repeat_password_label = ctk.CTkLabel(userpasswort_frame, text="Confirm Password:", text_color="white", font=("Arial", 20), anchor="w")
+    repeat_password_label.grid(row=2, column=0, padx=10, pady=10, sticky="w")
     repeat_password_entry = ctk.CTkEntry(userpasswort_frame, width=300, height=30, corner_radius=10, show="*", textvariable=second_pass)
     repeat_password_entry.grid(row=2, column=1, padx=10, pady=20)
 
     #email field
-    email_label = ctk.CTkLabel(userpasswort_frame, text="Email:", text_color="white", font=("Arial", 20))
-    email_label.grid(row=3, column=0, padx=10, pady=10)
+    email_label = ctk.CTkLabel(userpasswort_frame, text="Email:", text_color="white", font=("Arial", 20), anchor="w")
+    email_label.grid(row=3, column=0, padx=10, pady=10, sticky="w")
     email_entry = ctk.CTkEntry(userpasswort_frame, width=300, height=30, corner_radius=10, textvariable= emailvar)
     email_entry.grid(row=3, column=1, padx=10, pady=20)
 
     #sex field
-    sex_text = ctk.CTkLabel(userpasswort_frame, text="Sex:", text_color="white", font=("Arial", 20))
-    sex_text.grid(row=4, column=0, padx=10, pady=10)
-    sex_combo = ctk.CTkOptionMenu(userpasswort_frame, values=["male", "female", "other", "trans", "helicopther", "BMW", "TANK"], width=300, height=30, corner_radius=10, dropdown_font=("Arial", 20), fg_color=email_entry.cget("fg_color"), variable=sex)
+    sex_text = ctk.CTkLabel(userpasswort_frame, text="Sex:", text_color="white", font=("Arial", 20), anchor="w")
+    sex_text.grid(row=4, column=0, padx=10, pady=10, sticky="w")
+    sex_combo = ctk.CTkOptionMenu(userpasswort_frame, values=["male", "female", "trans", "bisexuel", "queer", "other"], width=300, height=30, corner_radius=10, dropdown_font=("Arial", 20), anchor="w", fg_color=email_entry.cget("fg_color"), variable=sex)
     sex_combo.grid(row=4, column=1, padx=10, pady=20)
 
     #secret code field
-    secret_code_label = ctk.CTkLabel(userpasswort_frame, text="Secret Code:", text_color="white", font=("Arial", 20))
-    secret_code_label.grid(row=5, column=0, padx=10, pady=10)
-    secret_code_entry = ctk.CTkEntry(userpasswort_frame, width=300, height=30, corner_radius=10, textvariable= secret_code)
+    secret_code_label = ctk.CTkLabel(userpasswort_frame, text="Secret Code:", text_color="white", font=("Arial", 20), anchor="w")
+    secret_code_label.grid(row=5, column=0, padx=10, pady=10, sticky="w")
+    secret_code_entry = ctk.CTkEntry(userpasswort_frame, width=300, height=30, corner_radius=10, textvariable= secret_code, placeholder_text="egal")
     secret_code_entry.grid(row=5, column=1, padx=10, pady=20)
 
     # progress bar field

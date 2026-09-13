@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt # maybe i will use something diff to show the lo
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import hashlib, os, json
+import sqlite3
 import time
 from login import create_login_frame
 from register import create_register_frame
@@ -14,13 +15,22 @@ from daschboard import Daschbord
 from courses import Courses
 from main_app import App
 from statistik import Statistics
+from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError
+from email_validator import validate_email, EmailNotValidError
+from zxcvbn import zxcvbn
 
 
 
+ph = PasswordHasher()
 
 # funktion to hashed the password
 def hashed_passwort(passwort):
-    return hashlib.blake2b(passwort.encode(), digest_size=32).hexdigest()
+    return ph.hash(passwort)
+    
+
+    
+    
 # create the json file
 def load_passwort(pfad):
     if not os.path.exists(pfad):
@@ -31,8 +41,33 @@ def load_passwort(pfad):
 def save_passwort(pfad, passwort):
     with open(pfad, "w") as datei:
         json.dump(passwort, datei, indent=4)
+        
 
-
+def create_table():
+    try: 
+        with sqlite3.connect('../daten/myDB.db') as database:
+            cursor = database.cursor()
+            cursor.execute("""CREATE TABLE if NOT EXISTS userdaten(
+                            id integer PRIMARY KEY AUTOINCREMENT,
+                            username text not NULL, 
+                            passwort text not NULL, 
+                            secret_code text not null,
+                            email text not NULL,
+                            sex text not NULL
+                            );
+                            """)
+            database.commit()
+    except sqlite3.OperationalError and sqlite3.IntegrityError as error:
+        print(error)
+        
+def insert_intoSql(sql, value):
+    try: 
+        with sqlite3.connect('../daten/myDB.db') as database:
+            cursor = database.cursor()
+            cursor.execute(sql, value)
+            database.commit()
+    except sqlite3.OperationalError and sqlite3.IntegrityError as error:
+        print(error)
 
 class Main:
     def __init__(self):
@@ -42,6 +77,7 @@ class Main:
         self.passlib = load_passwort(self.path)
         self.low_passwort_list = ["123456","password", "123456789","12345678","12345", "1234567", "admin","qwerty","abc123","password1", "111111", "123123", "000000", "iloveyou", "welcome", "monkey","dragon","sunshine","letmein", "football", "princess", "login", "passw0rd", "master", "hello", "freedom","whatever","qazwsx", "trustno1","starwars"]
         self.color = ("white", "black")
+        create_table()
 
 
         self._variables()
@@ -104,24 +140,35 @@ class Main:
         passvar = self.passvar.get()
         self.login["bar"].stop()
         self.liste_l = [self.login["user_entry"], self.login["passwort_entry"]]
-     
-        if not uservar :
-            self.login["raise_msg"].configure(text="Username darf nicht leer sein", text_color="red")
-            self._delete_entry(self.liste_l)
-        elif uservar in self.passlib:
-            if not passvar:
-                self.login["raise_msg"].configure(text="Passwort darf nicht leer sein", text_color="red")
-                self._delete_entry(self.liste_l)
-            elif hashed_passwort(passvar) == self.passlib[uservar]["passwort"]:
-                self.login["raise_msg"].configure(text="Erfolgreich angemeldet", text_color="green")
-                self._load_app()                             
-                
-            else:
-                self.login["raise_msg"].configure(text="Ungültige Eingabe", text_color="red")
-                self._delete_entry(self.liste_l)
-        else:
-            self.login["raise_msg"].configure(text="Username falsch", text_color="red")
-            self._delete_entry(self.liste_l)
+        
+        try:
+            with sqlite3.connect('../daten/myDB.db') as database:  
+                cursor = database.cursor()
+                cursor.execute("SELECT username FROM userdaten;")
+                sql_username = cursor.fetchall()
+                print(sql_username)
+                if not uservar:
+                    self.login["raise_msg"].configure(text="Username darf nicht leer sein", text_color="red")
+                    self._delete_entry(self.liste_l)
+                elif (uservar,) in sql_username:
+                    try:
+                        cursor.execute("SELECT passwort FROM userdaten WHERE username = ?", (uservar,))
+                        hash_pass = cursor.fetchone()
+                        
+                        if not passvar:
+                            self.login["raise_msg"].configure(text="Passwort darf nicht leer sein", text_color="red")
+                            self._delete_entry(self.liste_l)
+                        elif ph.verify(hash_pass[0], passvar):
+                            self.login["raise_msg"].configure(text="Erfolgreich angemeldet", text_color="green")
+                            self._load_app()                                         
+                            
+                    except VerifyMismatchError and sqlite3.OperationalError and sqlite3.DatabaseError and sqlite3.DatabaseError and sqlite3.IntegrityError as passError:
+                        self.login["raise_msg"].configure(text=f"{passError}", text_color="red")
+                else:
+                    self.login["raise_msg"].configure(text="Username falsch", text_color="red")
+                    self._delete_entry(self.liste_l)
+        except sqlite3.DatabaseError and sqlite3.IntegrityError and sqlite3.Error and sqlite3.OperationalError and VerifyMismatchError as error:
+            self.login["raise_msg"].configure(text=f"{error}", text_color="red")
 
     # delete the register info if one of them false or has already been allocated
 
@@ -139,37 +186,56 @@ class Main:
         emailvar = self.emailvar.get()
         sexvar = self.sexvar.get()
         secret_codevar = self.secret_code.get()
-        self.value = []
-        for value in self.passlib.values():
-            self.value.append(value["email"])
+        ergebnis = zxcvbn(passvar)
+        feedback = ergebnis["feedback"]
+        score = ergebnis["score"]
+  
+        self.valueToInsert = """INSERT INTO userdaten (username, passwort, secret_code, email, sex) VALUES(?, ?, ?, ?, ?)"""
         
-
-        self.register["bar"].stop()
-        if not all([uservar, passvar, emailvar, sexvar, secret_codevar]):
-            self.register["raise_msg"].configure(text="Füllen alle Felder aus", text_color="red")
-            self._delete_entry(self.liste_R)
-        elif len(uservar) < 4:
-            self.register["raise_msg"].configure(text="Username zu kurz", text_color="red")
-            self._delete_entry(self.liste_R)
-        elif uservar in self.passlib:
-            self.register["raise_msg"].configure(text="Username bereit vergeben", text_color="red")
-            self._delete_entry(self.liste_R)
-        else:
-            if emailvar in self.value  or not ("@" in emailvar or "." in emailvar):
-                self.register["raise_msg"].configure(text="Email bereit vergeben oder ungültig", text_color="red")
-                self._delete_entry(self.liste_R)
-                
-            elif len(passvar) < 5 or passvar in self.low_passwort_list:
-                self.register["raise_msg"].configure(text="Passwort zu kurz oder unsicher", text_color="red")
-                self._delete_entry(self.liste_R)
-            elif passvar != second_pass:
-                self.register["raise_msg"].configure(text="Passwort unterschiedlich", text_color="red")
-                self._delete_entry(self.liste_R)
-            else:
-                self.passlib[uservar] = {"passwort": hashed_passwort(passvar), "email": emailvar, "sex": sexvar, "secret_code": hashed_passwort(secret_codevar)}
-                save_passwort(self.path, self.passlib)
-                self.register["raise_msg"].configure(text="Erfolgreich registriert", text_color="green")
-                self._delete_entry(self.liste_R)
+        
+        
+        # create the data base if not exist 
+        try:
+            with sqlite3.connect('../daten/myDB.db') as database:  
+                cursor = database.cursor()
+                cursor.execute("SELECT username FROM userdaten;")
+                sql_username = cursor.fetchall()
+                cursor.execute("SELECT email FROM userdaten;")
+                sql_email = cursor.fetchall()
+                self.register["bar"].stop()
+                if not all([uservar, passvar, emailvar, sexvar, secret_codevar]):
+                    self.register["raise_msg"].configure(text="Füllen alle Felder aus", text_color="red")
+                    self._delete_entry(self.liste_R)
+                elif len(uservar) < 5:
+                    self.register["raise_msg"].configure(text="Username zu kurz", text_color="red")
+                    self._delete_entry(self.liste_R)
+                elif uservar in sql_username:
+                    self.register["raise_msg"].configure(text="Username bereit vergeben", text_color="red")
+                    self._delete_entry(self.liste_R)
+                else:
+                    try: 
+                        
+                        email = validate_email(emailvar)
+                        email_normalized = email.normalized
+                        if email_normalized in sql_email:
+                            self.register["raise_msg"].configure(text="Email bereit vergeben", text_color="red")
+                        elif len(passvar) < 8:
+                            self.register["raise_msg"].configure(text="Passwort zu kurz", text_color="red")
+                            self._delete_entry(self.liste_R)
+                        elif score < 2:
+                            self.register["raise_msg"].configure(text=f"{feedback['warning']}: {feedback['suggestions']}", text_color="red")
+                        elif passvar != second_pass:
+                            self.register["raise_msg"].configure(text="Passwort unterschiedlich", text_color="red")
+                            self._delete_entry(self.liste_R)
+                        else:
+                            insert_intoSql(self.valueToInsert, (uservar, hashed_passwort(passvar), hashed_passwort(secret_codevar), email_normalized, sexvar))
+                            self.register["raise_msg"].configure(text="Erfolgreich registriert", text_color="green")
+                            self._delete_entry(self.liste_R)
+                    except EmailNotValidError as emailError:
+                        self.register["raise_msg"].configure(text="Email bereit vergeben oder ungültig", text_color="red")
+                        self._delete_entry(self.liste_R)
+        except sqlite3.DatabaseError and sqlite3.IntegrityError and sqlite3.Error and sqlite3.OperationalError as error:
+            print(error)
         
     # delete entry if somethings wrong
 
@@ -180,6 +246,7 @@ class Main:
         self.app.after(2000, self._reset_check)
     def _reset_check(self):
         self.liste_r = [self.reset["username"], self.reset["neue_passwort"], self.reset["passwort_w"], self.reset["email"], self.reset["secret_code"]]
+        
         bar = self.reset["bar"]
         uservar = self.uservar.get()
         emailvar = self.emailvar.get()
@@ -191,13 +258,17 @@ class Main:
             self._delete_entry(self.liste_r)
         else:
             try:
-                if emailvar == self.passlib[uservar]["email"] and hashed_passwort(secret_codevar) == self.passlib[uservar]["secret_code"]:
-                    raise_msg.configure(text="Jetzt können sie den neuen passwort eingeben", text_color="green")
-                    self.reset["reset"].configure(state="normal")
-                    self.reset["check"].configure(state="disabled") 
+                with sqlite3.connect('../daten/myDB.db') as database:  
+                    cursor = database.cursor()
+                    cursor.execute("SELECT email, secret_code FROM userdaten WHERE username = ?", (uservar,))
+                    sql_daten = cursor.fetchall()
+                    if emailvar == sql_daten[0] and ph.verify(sql_daten[1], secret_codevar):
+                        raise_msg.configure(text="Jetzt können sie den neuen passwort eingeben", text_color="green")
+                        self.reset["reset"].configure(state="normal")
+                        self.reset["check"].configure(state="disabled") 
                     
-            except:
-                raise_msg.configure(text="Ungültige Eingabe", text_color="red")
+            except sqlite3.OperationalError and sqlite3.DatabaseError and sqlite3.Error and sqlite3.DataError as error:
+                raise_msg.configure(text=f"{error}", text_color="red")
                 self._delete_entry(self.liste_r)
             
      # reset the informations if the secret code username and email correct else await       
@@ -220,11 +291,16 @@ class Main:
             raise_msg.configure(text="passwort unterschiedlich oder zu schwach", text_color="red")
             self._delete_entry(self.liste_r)
         else:
-            self.passlib[uservar]["passwort"] = hashed_passwort(passvar)
-            save_passwort(self.path, self.passlib)
-            raise_msg.configure(text="Passwort erfolgreich  geändert", text_color="green")
-            self._delete_entry(self.liste_r)
-            
+            try:
+                with sqlite3.connect('../daten/myDB.db') as database:  
+                    cursor = database.cursor()
+                    cursor.execute("UPDATE userdaten set passwort = ? WHERE username = ?", (uservar,))
+
+                    raise_msg.configure(text="Passwort erfolgreich  geändert", text_color="green")
+                    self._delete_entry(self.liste_r)
+            except sqlite3.OperationalError and sqlite3.DatabaseError and sqlite3.Error and sqlite3.DataError as error:
+                raise_msg.configure(text=f"{error}", text_color="red")
+                self._delete_entry(self.liste_r)
     # hier wird die app gebaut und an den user angezeigt
     def _load_app(self):
          
@@ -267,6 +343,3 @@ if __name__== "__main__":
         app.mainloop()
     else:
         Main()
- 
-   
-
